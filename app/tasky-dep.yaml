@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tasky
+  labels:
+    app: tasky
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tasky
+  template:
+    metadata:
+      labels:
+        app: tasky
+    spec:
+      serviceAccountName: default
+      containers:
+        - image: garreeoke/tasky:b1
+          imagePullPolicy: IfNotPresent
+          name: tasky
+          ports:
+            - containerPort: 8080
+              name: app
+              protocol: TCP
+          env:
+            - name: MONGODB_URI
+              value: mongodb://adminuser:password123@mongodb:27017
+            #- name: SECRET_KEY
+            #  value: key
