@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: tasky
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app: tasky
   ports:

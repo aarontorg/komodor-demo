@@ -21,7 +21,7 @@ spec:
           name: tasky
           ports:
             - containerPort: 8080
-              name: app
+              name: apis
               protocol: TCP
           env:
             - name: MONGODB_URI
