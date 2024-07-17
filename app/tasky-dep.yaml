@@ -27,6 +27,6 @@ spec:
             - name: MONGODB_URI
               value: mongodb://adminuser:password123@mongodb:27017
             - name: DEMO
-              value: two
+              value: three
             #- name: SECRET_KEY
             #  value: key
