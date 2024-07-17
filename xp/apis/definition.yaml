@@ -1,0 +1,55 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xkomodors.demo.komodor.io
+spec:
+  group: demo.komodor.io
+  names:
+    kind: XKomodor
+    plural: xkomodors
+  claimNames:
+    kind: Komodor
+    plural: komodors
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              id:
+                type: string
+                description: ID of the environment
+              eks:
+                type: object
+                properties:
+                  k8Version:
+                    type: string
+                    description: k8s version 1.28
+                  iam:
+                    type: object
+                    description: IAM configuration to connect as ClusterAdmin.
+                    properties:
+                      awsArn:
+                        description: Arn of top level user
+                        type: string
+                    required:
+                      - awsArn
+                required:
+                  - k8Version
+                  - iam
+            required:
+            - id
+            - eks
+          status:
+            description: various status things
+            properties:
+              misc:
+                description: Freeform field containing status information
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+            type: object

@@ -1,0 +1,91 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xargos.demo.komodor.io
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: demo.komodor.io/v1alpha1
+    kind: XArgo
+  patchSets:
+    - name: network-id
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.demo.komodor.io/network-id]
+  resources:
+    - name: releaseArgo
+      base:
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: Release
+        spec:
+          forProvider:
+            chart:
+              name: argo-cd
+              repository: https://argoproj.github.io/argo-helm
+            namespace: argocd
+            values:
+              server:
+                service:
+                  type: LoadBalancer
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.providerConfigRef.name
+    - name: appNamespace
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+          deletionPolicy: Delete
+          forProvider:
+            manifest:
+              apiVersion: v1
+              kind: Namespace
+      patches:
+        - fromFieldPath: status.atProvider.manifest.metadata.labels[kubernetes.io/metadata.name]
+          policy:
+            fromFieldPath: Required
+          toFieldPath: status.ns
+          type: ToCompositeFieldPath
+        - fromFieldPath: spec.id
+          toFieldPath: spec.providerConfigRef.name
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.name
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+          transforms:
+            - string:
+                fmt: '%s-namespace'
+              type: string
+    - name: argoApp
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+          deletionPolicy: Delete
+          forProvider:
+            manifest:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Application
+              metadata:
+                name: tasky
+                namespace: argocd
+              spec:
+                destination:
+                  server: https://kubernetes.default.svc
+                project: default
+                source:
+                  path: app
+                  repoURL: https://github.com/aarontorg/komodor-demo.git
+                  targetRevision: HEAD
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.spec.destination.namespace
+        - fromFieldPath: spec.id
+          toFieldPath: spec.providerConfigRef.name
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+          transforms:
+            - string:
+                fmt: '%s-argoapp'
+              type: string

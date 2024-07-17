@@ -1,0 +1,38 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xkomodors.demo.komodor.io
+spec:
+  compositeTypeRef:
+    apiVersion: demo.komodor.io/v1alpha1
+    kind: XKomodor
+  resources:
+    - base:
+        apiVersion: demo.komodor.io/v1alpha1
+        kind: XNetwork
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.id
+      name: compositeNetwork
+    - base:
+        apiVersion: demo.komodor.io/v1alpha1
+        kind: XK8s
+      name: compositeK8s
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.id
+        - fromFieldPath: spec.eks.k8Version
+          toFieldPath: spec.k8Version
+        - fromFieldPath: spec.eks.iam.awsArn
+          toFieldPath: spec.iam.awsArn
+    - base:
+        apiVersion: demo.komodor.io/v1alpha1
+        kind: XArgo
+      name: installArgo
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.id
+        #- fromFieldPath: status.dbIp
+        #  toFieldPath: spec.dbIp
+        #  policy:
+        #    fromFieldPath: Required

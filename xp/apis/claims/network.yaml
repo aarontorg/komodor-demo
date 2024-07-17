@@ -1,0 +1,7 @@
+apiVersion: demo.komodor.io/v1alpha1
+kind: XNetwork
+metadata:
+  name: komodor-demo-1
+spec:
+  id: komodor-demo-1
+  #region: "us-west-2"

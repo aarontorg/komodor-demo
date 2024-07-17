@@ -1,0 +1,6 @@
+apiVersion: demo.komodor.io/v1alpha1
+kind: XArgo
+metadata:
+  name: komodor-demo-1
+spec:
+  id: komodor-demo-1
