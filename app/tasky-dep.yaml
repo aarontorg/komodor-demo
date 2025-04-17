@@ -13,7 +13,7 @@ spec:
     metadata:
       labels:
         app: tasky
-        version: 1
+        version: "1"
     spec:
       serviceAccountName: default
       containers:
