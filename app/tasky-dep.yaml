@@ -4,6 +4,7 @@ metadata:
   name: tasky
   labels:
     app: tasky
+    komodor: deploy-monitor
 spec:
   replicas: 1
   selector:
@@ -17,7 +18,7 @@ spec:
     spec:
       serviceAccountName: default
       containers:
-        - image: garreeoke/tasky:b2
+        - image: garreeoke/tasky:b99
           imagePullPolicy: IfNotPresent
           name: tasky
           ports:
