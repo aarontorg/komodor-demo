@@ -5,7 +5,7 @@ metadata:
 spec:
   id: komodor-demo-1
   eks:
-    k8Version: "1.29"
+    k8Version: "1.31"
     iam:
       awsArn: arn:aws:iam::058264154390:root
       #roleArn: arn:aws:iam::058264154390:role/k8sadmin
