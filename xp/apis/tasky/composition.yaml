@@ -1,0 +1,316 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xtaskys.demo.komodor.io
+spec:
+  compositeTypeRef:
+    apiVersion: demo.komodor.io/v1alpha1
+    kind: XTasky
+  resources:
+    - name: taskyNamespace
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+          providerConfigRef:
+            name: komodor-demo-1
+          deletionPolicy: Delete
+          forProvider:
+            manifest:
+              apiVersion: v1
+              kind: Namespace
+      patches:
+        - fromFieldPath: status.atProvider.manifest.metadata.labels[kubernetes.io/metadata.name]
+          policy:
+            fromFieldPath: Required
+          toFieldPath: status.ns
+          type: ToCompositeFieldPath
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.name
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+          transforms:
+            - string:
+                fmt: '%s-namespace'
+              type: string
+    - name: mongoPv
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+          deletionPolicy: Delete
+          providerConfigRef:
+            name: "komodor-demo-1"
+          forProvider:
+            manifest:
+              apiVersion: v1
+              kind: PersistentVolume
+              metadata:
+                name: mongo
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                capacity:
+                  storage: 1Gi
+                hostPath:
+                  path: /data/mongo
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.name
+          transforms:
+            - string:
+                fmt: '%s-mongo-data-pv'
+              type: string
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+          transforms:
+            - string:
+                fmt: '%s-mongo-data-pv'
+              type: string
+    - name: mongoPvc
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+          deletionPolicy: Delete
+          providerConfigRef:
+            name: "komodor-demo-1"
+          forProvider:
+            manifest:
+              apiVersion: v1
+              kind: PersistentVolumeClaim
+              metadata:
+                name: mongo-data
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 1Gi
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+          transforms:
+            - string:
+                fmt: '%s-mongo-pvc'
+              type: string
+    - name: mongoSecret
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+          deletionPolicy: Delete
+          providerConfigRef:
+            name: "komodor-demo-1"
+          forProvider:
+            manifest:
+              apiVersion: v1
+              metadata:
+                name: mongo-creds
+              data:
+                password: cGFzc3dvcmQxMjM= #password123
+                username: YWRtaW51c2Vy #adminuser
+              kind: Secret
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+          transforms:
+            - string:
+                fmt: '%s-mongo-secret'
+              type: string
+    - name: mongoDeploy
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+          deletionPolicy: Delete
+          providerConfigRef:
+            name: "komodor-demo-1"
+          metadata:
+            name: mongo
+          forProvider:
+            manifest:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: mongo
+                labels:
+                  app: mongo
+                  komodor: deploy-monitor
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    app: mongo
+                strategy: { }
+                template:
+                  metadata:
+                    labels:
+                      app: mongo
+                  spec:
+                    containers:
+                      - image: mongo
+                        name: mongo
+                        args: [ "--dbpath","/data/db" ]
+                        livenessProbe:
+                          exec:
+                            command:
+                              - mongosh
+                              - --eval
+                              - "db.adminCommand('ping')"
+                          initialDelaySeconds: 30
+                          periodSeconds: 10
+                          timeoutSeconds: 5
+                          successThreshold: 1
+                          failureThreshold: 6
+                        readinessProbe:
+                          exec:
+                            command:
+                              - mongosh
+                              - --eval
+                              - "db.adminCommand('ping')"
+                          initialDelaySeconds: 30
+                          periodSeconds: 10
+                          timeoutSeconds: 5
+                          successThreshold: 1
+                          failureThreshold: 6
+                        env:
+                          - name: MONGO_INITDB_ROOT_USERNAME
+                            valueFrom:
+                              secretKeyRef:
+                                key: username
+                                name: "mongo-creds"
+                          - name: MONGO_INITDB_ROOT_PASSWORD
+                            valueFrom:
+                              secretKeyRef:
+                                key: password
+                                name: "mongo-creds"
+                        volumeMounts:
+                          - name: "mongo-data-dir"
+                            mountPath: "/data/db"
+                    volumes:
+                      - name: "mongo-data-dir"
+                        claimName: "mongo-data"
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+    - name: mongoSvc
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+          deletionPolicy: Delete
+          providerConfigRef:
+            name: "komodor-demo-1"
+          forProvider:
+            manifest:
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: mongodb
+                labels:
+                  app: mongo
+              spec:
+                ports:
+                  - port: 27017
+                    protocol: TCP
+                    targetPort: 27017
+                selector:
+                  app: mongo
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+          transforms:
+            - string:
+                fmt: '%s-mongodb'
+              type: string
+    ##
+    - name: taskyDep
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+          deletionPolicy: Delete
+          providerConfigRef:
+            name: "komodor-demo-1"
+          forProvider:
+            manifest:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: tasky
+                labels:
+                  app: tasky
+                  komodor: deploy-monitor
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    app: tasky
+                template:
+                  metadata:
+                    labels:
+                      app: tasky
+                      version: "1"
+                  spec:
+                    serviceAccountName: default
+                    containers:
+                      - imagePullPolicy: IfNotPresent
+                        name: tasky
+                        ports:
+                          - containerPort: 8080
+                            name: apis
+                            protocol: TCP
+                        env:
+                          - name: MONGODB_URI
+                            value: mongodb://adminuser:password123@mongodb:27017
+                          - name: DEMO
+                            value: three
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+        - fromFieldPath: spec.image
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].image
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+          transforms:
+            - string:
+                fmt: '%s-tasky-dep'
+              type: string
+    - name: taskySvc
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+          deletionPolicy: Delete
+          providerConfigRef:
+            name: "komodor-demo-1"
+          forProvider:
+            manifest:
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: tasky
+              spec:
+                type: LoadBalancer
+                selector:
+                  app: tasky
+                ports:
+                  - protocol: TCP
+                    port: 8080
+                    targetPort: 8080
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+          transforms:
+            - string:
+                fmt: '%s-tasky-svc'
+              type: string

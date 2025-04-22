@@ -1,0 +1,7 @@
+apiVersion: demo.komodor.io/v1alpha1
+kind: XTasky
+metadata:
+  name: xptasky
+spec:
+  id: xptasky
+  image: "garreeoke/tasky:b2"

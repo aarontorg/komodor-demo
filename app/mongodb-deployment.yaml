@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   labels:
     app: mongo
+    komodor: deploy-monitor
   name: mongo
 spec:
   replicas: 1
