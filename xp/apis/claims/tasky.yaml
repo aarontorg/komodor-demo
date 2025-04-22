@@ -4,4 +4,4 @@ metadata:
   name: xptasky
 spec:
   id: xptasky
-  image: "garreeoke/tasky:b2"
+  image: "garreeoke/tasky:x"
